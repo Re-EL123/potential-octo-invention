@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Calculator - Numerology, Astrology & Physics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00d4ff, #ff00ff, #ffff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.5)); }
+            to { filter: drop-shadow(0 0 30px rgba(255, 0, 255, 0.7)); }
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            margin-bottom: 30px;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 5px;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab {
+            padding: 15px 30px;
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tab.active {
+            background: linear-gradient(45deg, #00d4ff, #ff00ff);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .tab:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .content {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #00d4ff;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .input-group input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #00d4ff, #ff00ff);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 212, 255, 0.4);
+        }
+
+        .result {
+            background: rgba(0, 212, 255, 0.1);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .result h3 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-value {
+            font-weight: 600;
+            color: #ffff00;
+            font-size: 1.2rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .zodiac-wheel {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .physics-sim {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            height: 300px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slider-container {
+            margin: 15px 0;
+        }
+
+        .slider {
+            width: 100%;
+            height: 5px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #00d4ff, #ff00ff);
+            cursor: pointer;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #00d4ff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .tabs {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .error {
+            background: rgba(255, 0, 0, 0.1);
+            border: 2px solid rgba(255, 0, 0, 0.3);
+            color: #ff6b6b;
+        }
+
+        .success {
+            background: rgba(0, 255, 0, 0.1);
+            border: 2px solid rgba(0, 255, 0, 0.3);
+            color: #51cf66;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-infinity"></i> Cosmic Calculator</h1>
+            <p>Advanced Numerology, Astrology & Physics Computation Engine</p>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab active" data-tab="numerology">
+                <i class="fas fa-calculator"></i> Numerology
+            </button>
+            <button class="tab" data-tab="astrology">
+                <i class="fas fa-star"></i> Astrology
+            </button>
+            <button class="tab" data-tab="physics">
+                <i class="fas fa-atom"></i> Physics
+            </button>
+        </nav>
+
+        <main>
+            <section id="numerology" class="content active">
+                <div class="grid">
+                    <div class="card">
+                        <h2><i class="fas fa-user"></i> Personal Information</h2>
+                        <div class="input-group">
+                            <label for="fullName">Full Name</label>
+                            <input type="text" id="fullName" placeholder="Enter your full name">
+                        </div>
+                        <div class="input-group">
+                            <label for="birthDate">Date of Birth</label>
+                            <input type="date" id="birthDate">
+                        </div>
+                        <div class="input-group">
+                            <label for="numerologySystem">Numerology System</label>
+                            <select id="numerologySystem">
+                                <option value="pythagorean">Pythagorean</option>
+                                <option value="chaldean">Chaldean</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="calculateNumerology()">
+                            <i class="fas fa-magic"></i> Calculate Numbers
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <h2><i class="fas fa-chart-line"></i> Numerology Results</h2>
+                        <div id="numerologyResults"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2><i class="fas fa-wave-square"></i> Name Vibration Analysis</h2>
+                    <div class="chart-container">
+                        <canvas id="vibrationChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="astrology" class="content">
+                <div class="grid">
+                    <div class="card">
+                        <h2><i class="fas fa-globe"></i> Birth Information</h2>
+                        <div class="input-group">
+                            <label for="birthDateTime">Birth Date & Time</label>
+                            <input type="datetime-local" id="birthDateTime">
+                        </div>
+                        <div class="input-group">
+                            <label for="birthLocation">Birth Location</label>
+                            <input type="text" id="birthLocation" placeholder="City, Country">
+                        </div>
+                        <div class="input-group">
+                            <label for="latitude">Latitude</label>
+                            <input type="number" id="latitude" step="0.0001" placeholder="e.g., 40.7128">
+                        </div>
+                        <div class="input-group">
+                            <label for="longitude">Longitude</label>
+                            <input type="number" id="longitude" step="0.0001" placeholder="e.g., -74.0060">
+                        </div>
+                        <button class="btn" onclick="calculateAstrology()">
+                            <i class="fas fa-star-of-david"></i> Generate Chart
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <h2><i class="fas fa-sun"></i> Astrological Profile</h2>
+                        <div id="astrologyResults"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2><i class="fas fa-circle"></i> Birth Chart Wheel</h2>
+                    <div class="chart-container">
+                        <div class="zodiac-wheel" id="zodiacWheel"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="physics" class="content">
+                <div class="grid">
+                    <div class="card">
+                        <h2><i class="fas fa-rocket"></i> Classical Mechanics</h2>
+                        <div class="input-group">
+                            <label for="mass">Mass (kg)</label>
+                            <input type="number" id="mass" step="0.01" placeholder="Enter mass">
+                        </div>
+                        <div class="input-group">
+                            <label for="velocity">Velocity (m/s)</label>
+                            <input type="number" id="velocity" step="0.01" placeholder="Enter velocity">
+                        </div>
+                        <div class="input-group">
+                            <label for="acceleration">Acceleration (m/s²)</label>
+                            <input type="number" id="acceleration" step="0.01" placeholder="Enter acceleration">
+                        </div>
+                        <button class="btn" onclick="calculatePhysics()">
+                            <i class="fas fa-calculator"></i> Calculate
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <h2><i class="fas fa-atom"></i> Physics Results</h2>
+                        <div id="physicsResults"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2><i class="fas fa-wave-square"></i> Wave Simulation</h2>
+                    <div class="slider-container">
+                        <label>Frequency: <span id="freqValue">1</span> Hz</label>
+                        <input type="range" class="slider" id="frequency" min="0.1" max="10" step="0.1" value="1">
+                    </div>
+                    <div class="slider-container">
+                        <label>Amplitude: <span id="ampValue">1</span></label>
+                        <input type="range" class="slider" id="amplitude" min="0.1" max="3" step="0.1" value="1">
+                    </div>
+                    <div class="physics-sim">
+                        <canvas id="waveCanvas"></canvas>
+                    </div>
+                </div>            </div>
+        </div>
+    </div>
+
+    <script>
+        // Wave Simulation
+        const waveCanvas = document.getElementById('waveCanvas');
+        const waveCtx = waveCanvas.getContext('2d');
+        const freqSlider = document.getElementById('frequency');
+        const ampSlider = document.getElementById('amplitude');
+        const freqValue = document.getElementById('freqValue');
+        const ampValue = document.getElementById('ampValue');
+
+        waveCanvas.width = waveCanvas.offsetWidth;
+        waveCanvas.height = waveCanvas.offsetHeight;
+
+        let time = 0;
+        let frequency = 1;
+        let amplitude = 1;
+
+        freqSlider.addEventListener('input', function() {
+            frequency = parseFloat(this.value);
+            freqValue.textContent = frequency;
+        });
+
+        ampSlider.addEventListener('input', function() {
+            amplitude = parseFloat(this.value);
+            ampValue.textContent = amplitude;
+        });
+
+        function drawWave() {
+            waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+            
+            // Draw grid
+            waveCtx.strokeStyle = '#333';
+            waveCtx.lineWidth = 0.5;
+            for (let i = 0; i < waveCanvas.width; i += 20) {
+                waveCtx.beginPath();
+                waveCtx.moveTo(i, 0);
+                waveCtx.lineTo(i, waveCanvas.height);
+                waveCtx.stroke();
+            }
+            for (let i = 0; i < waveCanvas.height; i += 20) {
+                waveCtx.beginPath();
+                waveCtx.moveTo(0, i);
+                waveCtx.lineTo(waveCanvas.width, i);
+                waveCtx.stroke();
+            }
+
+            // Draw wave
+            waveCtx.strokeStyle = '#00ff88';
+            waveCtx.lineWidth = 2;
+            waveCtx.beginPath();
+            
+            const centerY = waveCanvas.height / 2;
+            const scale = 50;
+            
+            for (let x = 0; x < waveCanvas.width; x++) {
+                const y = centerY + amplitude * scale * Math.sin((x * 0.02 + time) * frequency);
+                if (x === 0) {
+                    waveCtx.moveTo(x, y);
+                } else {
+                    waveCtx.lineTo(x, y);
+                }
+            }
+            
+            waveCtx.stroke();
+            time += 0.1;
+            requestAnimationFrame(drawWave);
+        }
+
+        drawWave();
+    </script>
+</body>
+</html>
