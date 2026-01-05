@@ -146,6 +146,11 @@
             color: rgba(255, 255, 255, 0.5);
         }
 
+        .input-group select option {
+            background: #1a1a2e;
+            color: #ffffff;
+        }
+
         .btn {
             background: linear-gradient(45deg, #00d4ff, #ff00ff);
             border: none;
@@ -158,11 +163,18 @@
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
+            width: 100%;
         }
 
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
 
         .result {
@@ -221,6 +233,9 @@
             width: 100%;
             height: 100%;
             position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .physics-sim {
@@ -255,6 +270,15 @@
             cursor: pointer;
         }
 
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #00d4ff, #ff00ff);
+            cursor: pointer;
+            border: none;
+        }
+
         .loading {
             display: inline-block;
             width: 20px;
@@ -267,6 +291,27 @@
 
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: rgba(255, 0, 0, 0.1);
+            border: 2px solid rgba(255, 0, 0, 0.3);
+            color: #ff6b6b;
+        }
+
+        .success {
+            background: rgba(0, 255, 0, 0.1);
+            border: 2px solid rgba(0, 255, 0, 0.3);
+            color: #51cf66;
+        }
+
+        .interpretation {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            font-style: italic;
+            color: #cccccc;
         }
 
         @media (max-width: 768px) {
@@ -282,18 +327,10 @@
             .grid {
                 grid-template-columns: 1fr;
             }
-        }
-
-        .error {
-            background: rgba(255, 0, 0, 0.1);
-            border: 2px solid rgba(255, 0, 0, 0.3);
-            color: #ff6b6b;
-        }
-
-        .success {
-            background: rgba(0, 255, 0, 0.1);
-            border: 2px solid rgba(0, 255, 0, 0.3);
-            color: #51cf66;
+            
+            .container {
+                padding: 10px;
+            }
         }
     </style>
 </head>
@@ -343,7 +380,11 @@
 
                     <div class="card">
                         <h2><i class="fas fa-chart-line"></i> Numerology Results</h2>
-                        <div id="numerologyResults"></div>
+                        <div id="numerologyResults">
+                            <p style="text-align: center; opacity: 0.6; padding: 40px;">
+                                Enter your information to see numerology calculations
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -382,14 +423,20 @@
 
                     <div class="card">
                         <h2><i class="fas fa-sun"></i> Astrological Profile</h2>
-                        <div id="astrologyResults"></div>
+                        <div id="astrologyResults">
+                            <p style="text-align: center; opacity: 0.6; padding: 40px;">
+                                Enter your birth information to generate astrological profile
+                            </p>
+                        </div>
                     </div>
                 </div>
 
                 <div class="card">
                     <h2><i class="fas fa-circle"></i> Birth Chart Wheel</h2>
                     <div class="chart-container">
-                        <div class="zodiac-wheel" id="zodiacWheel"></div>
+                        <div class="zodiac-wheel" id="zodiacWheel">
+                            <canvas id="chartCanvas"></canvas>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -410,6 +457,14 @@
                             <label for="acceleration">Acceleration (m/s²)</label>
                             <input type="number" id="acceleration" step="0.01" placeholder="Enter acceleration">
                         </div>
+                        <div class="input-group">
+                            <label for="distance">Distance (m)</label>
+                            <input type="number" id="distance" step="0.01" placeholder="Enter distance">
+                        </div>
+                        <div class="input-group">
+                            <label for="time">Time (s)</label>
+                            <input type="number" id="time" step="0.01" placeholder="Enter time">
+                        </div>
                         <button class="btn" onclick="calculatePhysics()">
                             <i class="fas fa-calculator"></i> Calculate
                         </button>
@@ -417,7 +472,11 @@
 
                     <div class="card">
                         <h2><i class="fas fa-atom"></i> Physics Results</h2>
-                        <div id="physicsResults"></div>
+                        <div id="physicsResults">
+                            <p style="text-align: center; opacity: 0.6; padding: 40px;">
+                                Enter values to see physics calculations
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -434,78 +493,653 @@
                     <div class="physics-sim">
                         <canvas id="waveCanvas"></canvas>
                     </div>
-                </div>            </div>
-        </div>
+                </div>
+            </section>
+        </main>
     </div>
 
     <script>
-        // Wave Simulation
-        const waveCanvas = document.getElementById('waveCanvas');
-        const waveCtx = waveCanvas.getContext('2d');
-        const freqSlider = document.getElementById('frequency');
-        const ampSlider = document.getElementById('amplitude');
-        const freqValue = document.getElementById('freqValue');
-        const ampValue = document.getElementById('ampValue');
-
-        waveCanvas.width = waveCanvas.offsetWidth;
-        waveCanvas.height = waveCanvas.offsetHeight;
-
-        let time = 0;
-        let frequency = 1;
-        let amplitude = 1;
-
-        freqSlider.addEventListener('input', function() {
-            frequency = parseFloat(this.value);
-            freqValue.textContent = frequency;
+        // Global variables
+        let currentTab = 'numerology';
+        
+        // Tab switching functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const targetTab = this.getAttribute('data-tab');
+                switchTab(targetTab);
+            });
         });
 
-        ampSlider.addEventListener('input', function() {
-            amplitude = parseFloat(this.value);
-            ampValue.textContent = amplitude;
-        });
-
-        function drawWave() {
-            waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+        function switchTab(tabName) {
+            // Remove active class from all tabs and contents
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.content').forEach(content => content.classList.remove('active'));
             
-            // Draw grid
-            waveCtx.strokeStyle = '#333';
-            waveCtx.lineWidth = 0.5;
-            for (let i = 0; i < waveCanvas.width; i += 20) {
-                waveCtx.beginPath();
-                waveCtx.moveTo(i, 0);
-                waveCtx.lineTo(i, waveCanvas.height);
-                waveCtx.stroke();
+            // Add active class to selected tab and content
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            currentTab = tabName;
+            
+            // Initialize specific functionality for each tab
+            if (tabName === 'physics') {
+                initializeWaveSimulation();
+            } else if (tabName === 'numerology') {
+                initializeVibrationChart();
+            } else if (tabName === 'astrology') {
+                initializeChartCanvas();
             }
-            for (let i = 0; i < waveCanvas.height; i += 20) {
-                waveCtx.beginPath();
-                waveCtx.moveTo(0, i);
-                waveCtx.lineTo(waveCanvas.width, i);
-                waveCtx.stroke();
-            }
+        }
 
-            // Draw wave
-            waveCtx.strokeStyle = '#00ff88';
-            waveCtx.lineWidth = 2;
-            waveCtx.beginPath();
+        // Numerology calculations
+        const pythagoreanChart = {
+            'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 6, 'G': 7, 'H': 8, 'I': 9,
+            'J': 1, 'K': 2, 'L': 3, 'M': 4, 'N': 5, 'O': 6, 'P': 7, 'Q': 8, 'R': 9,
+            'S': 1, 'T': 2, 'U': 3, 'V': 4, 'W': 5, 'X': 6, 'Y': 7, 'Z': 8
+        };
+
+        const chaldeanChart = {
+            'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 8, 'G': 3, 'H': 5, 'I': 1,
+            'J': 1, 'K': 2, 'L': 3, 'M': 4, 'N': 5, 'O': 7, 'P': 8, 'Q': 1, 'R': 2,
+            'S': 3, 'T': 4, 'U': 6, 'V': 6, 'W': 6, 'X': 5, 'Y': 1, 'Z': 7
+        };
+
+        function calculateNameNumber(name, system) {
+            const chart = system === 'pythagorean' ? pythagoreanChart : chaldeanChart;
+            let sum = 0;
             
-            const centerY = waveCanvas.height / 2;
-            const scale = 50;
-            
-            for (let x = 0; x < waveCanvas.width; x++) {
-                const y = centerY + amplitude * scale * Math.sin((x * 0.02 + time) * frequency);
-                if (x === 0) {
-                    waveCtx.moveTo(x, y);
-                } else {
-                    waveCtx.lineTo(x, y);
+            for (let char of name.toUpperCase()) {
+                if (chart[char]) {
+                    sum += chart[char];
                 }
             }
             
-            waveCtx.stroke();
-            time += 0.1;
-            requestAnimationFrame(drawWave);
+            return reduceToSingleDigit(sum);
         }
 
-        drawWave();
+        function reduceToSingleDigit(num) {
+            while (num > 9 && num !== 11 && num !== 22 && num !== 33) {
+                num = num.toString().split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);
+            }
+            return num;
+        }
+
+        function calculateLifePath(birthDate) {
+            const date = new Date(birthDate);
+            const day = date.getDate();
+            const month = date.getMonth() + 1;
+            const year = date.getFullYear();
+            
+            const sum = day + month + year;
+            return reduceToSingleDigit(sum);
+        }
+
+        function calculatePersonalityNumber(name, system) {
+            const consonants = name.replace(/[aeiouAEIOU\s]/g, '');
+            return calculateNameNumber(consonants, system);
+        }
+
+        function calculateSoulUrge(name, system) {
+            const vowels = name.replace(/[^aeiouAEIOU]/g, '');
+            return calculateNameNumber(vowels, system);
+        }
+
+        function getNumberMeaning(number) {
+            const meanings = {
+                1: "Leadership, independence, pioneering spirit",
+                2: "Cooperation, diplomacy, sensitivity",
+                3: "Creativity, communication, optimism",
+                4: "Stability, hard work, practicality",
+                5: "Freedom, adventure, versatility",
+                6: "Nurturing, responsibility, healing",
+                7: "Spirituality, introspection, analysis",
+                8: "Material success, authority, ambition",
+                9: "Humanitarian, wisdom, completion",
+                11: "Intuition, inspiration, enlightenment",
+                22: "Master builder, practical idealism",
+                33: "Master teacher, spiritual guidance"
+            };
+            return meanings[number] || "Unknown";
+        }
+
+        function calculateNumerology() {
+            const name = document.getElementById('fullName').value.trim();
+            const birthDate = document.getElementById('birthDate').value;
+            const system = document.getElementById('numerologySystem').value;
+            
+            if (!name || !birthDate) {
+                showError('numerologyResults', 'Please enter both name and birth date');
+                return;
+            }
+
+            try {
+                const lifePath = calculateLifePath(birthDate);
+                const destiny = calculateNameNumber(name, system);
+                const personality = calculatePersonalityNumber(name, system);
+                const soulUrge = calculateSoulUrge(name, system);
+                
+                const results = `
+                    <div class="result success">
+                        <h3>Your Numerology Profile</h3>
+                        <div class="result-item">
+                            <span>Life Path Number:</span>
+                            <span class="result-value">${lifePath}</span>
+                        </div>
+                        <div class="interpretation">${getNumberMeaning(lifePath)}</div>
+                        
+                        <div class="result-item">
+                            <span>Destiny Number:</span>
+                            <span class="result-value">${destiny}</span>
+                        </div>
+                        <div class="interpretation">${getNumberMeaning(destiny)}</div>
+                        
+                        <div class="result-item">
+                            <span>Personality Number:</span>
+                            <span class="result-value">${personality}</span>
+                        </div>
+                        <div class="interpretation">${getNumberMeaning(personality)}</div>
+                        
+                        <div class="result-item">
+                            <span>Soul Urge Number:</span>
+                            <span class="result-value">${soulUrge}</span>
+                        </div>
+                        <div class="interpretation">${getNumberMeaning(soulUrge)}</div>
+                    </div>
+                `;
+                
+                document.getElementById('numerologyResults').innerHTML = results;
+                updateVibrationChart(name, system);
+                
+            } catch (error) {
+                showError('numerologyResults', 'Error calculating numerology: ' + error.message);
+            }
+        }
+
+        // Astrology calculations
+        const zodiacSigns = [
+            'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+            'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+        ];
+
+        function calculateZodiacSign(birthDate) {
+            const date = new Date(birthDate);
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            
+            if ((month == 3 && day >= 21) || (month == 4 && day <= 19)) return 'Aries';
+            if ((month == 4 && day >= 20) || (month == 5 && day <= 20)) return 'Taurus';
+            if ((month == 5 && day >= 21) || (month == 6 && day <= 20)) return 'Gemini';
+            if ((month == 6 && day >= 21) || (month == 7 && day <= 22)) return 'Cancer';
+            if ((month == 7 && day >= 23) || (month == 8 && day <= 22)) return 'Leo';
+            if ((month == 8 && day >= 23) || (month == 9 && day <= 22)) return 'Virgo';
+            if ((month == 9 && day >= 23) || (month == 10 && day <= 22)) return 'Libra';
+            if ((month == 10 && day >= 23) || (month == 11 && day <= 21)) return 'Scorpio';
+            if ((month == 11 && day >= 22) || (month == 12 && day <= 21)) return 'Sagittarius';
+            if ((month == 12 && day >= 22) || (month == 1 && day <= 19)) return 'Capricorn';
+            if ((month == 1 && day >= 20) || (month == 2 && day <= 18)) return 'Aquarius';
+            if ((month == 2 && day >= 19) || (month == 3 && day <= 20)) return 'Pisces';
+        }
+
+        function calculateMoonPhase(date) {
+            const knownNewMoon = new Date('2000-01-06');
+            const lunarCycle = 29.53058867;
+            const daysSinceKnownNewMoon = (date - knownNewMoon) / (1000 * 60 * 60 * 24);
+            const currentCycle = daysSinceKnownNewMoon % lunarCycle;
+            
+            if (currentCycle < 1.84566) return 'New Moon';
+            if (currentCycle < 5.53699) return 'Waxing Crescent';
+            if (currentCycle < 9.22831) return 'First Quarter';
+            if (currentCycle < 12.91963) return 'Waxing Gibbous';
+            if (currentCycle < 16.61096) return 'Full Moon';
+            if (currentCycle < 20.30228) return 'Waning Gibbous';
+            if (currentCycle < 23.99361) return 'Last Quarter';
+            return 'Waning Crescent';
+        }
+
+        function getZodiacTraits(sign) {
+            const traits = {
+                'Aries': 'Energetic, pioneering, confident, sometimes impulsive',
+                'Taurus': 'Reliable, patient, practical, sometimes stubborn',
+                'Gemini': 'Adaptable, curious, communicative, sometimes inconsistent',
+                'Cancer': 'Nurturing, intuitive, protective, sometimes moody',
+                'Leo': 'Generous, creative, confident, sometimes dramatic',
+                'Virgo': 'Analytical, helpful, practical, sometimes critical',
+                'Libra': 'Diplomatic, artistic, balanced, sometimes indecisive',
+                'Scorpio': 'Intense, passionate, mysterious, sometimes jealous',
+                'Sagittarius': 'Adventurous, philosophical, optimistic, sometimes restless',
+                'Capricorn': 'Ambitious, disciplined, practical, sometimes pessimistic',
+                'Aquarius': 'Independent, innovative, humanitarian, sometimes detached',
+                'Pisces': 'Compassionate, intuitive, artistic, sometimes escapist'
+            };
+            return traits[sign] || 'Unknown traits';
+        }
+
+        function calculateAstrology() {
+            const birthDateTime = document.getElementById('birthDateTime').value;
+            const location = document.getElementById('birthLocation').value;
+            const latitude = parseFloat(document.getElementById('latitude').value);
+            const longitude = parseFloat(document.getElementById('longitude').value);
+            
+            if (!birthDateTime) {
+                showError('astrologyResults', 'Please enter birth date and time');
+                return;
+            }
+
+            try {
+                const birthDate = new Date(birthDateTime);
+                const zodiacSign = calculateZodiacSign(birthDate);
+                const moonPhase = calculateMoonPhase(birthDate);
+                
+                // Calculate ascendant (simplified calculation)
+                const hour = birthDate.getHours();
+                const ascendantIndex = Math.floor((hour * 2 + (latitude / 15)) % 12);
+                const ascendant = zodiacSigns[ascendantIndex];
+                
+                const results = `
+                    <div class="result success">
+                        <h3>Your Astrological Profile</h3>
+                        <div class="result-item">
+                            <span>Sun Sign:</span>
+                            <span class="result-value">${zodiacSign}</span>
+                        </div>
+                        <div class="interpretation">${getZodiacTraits(zodiacSign)}</div>
+                        
+                        <div class="result-item">
+                            <span>Rising Sign (Ascendant):</span>
+                            <span class="result-value">${ascendant}</span>
+                        </div>
+                        <div class="interpretation">${getZodiacTraits(ascendant)}</div>
+                        
+                        <div class="result-item">
+                            <span>Moon Phase at Birth:</span>
+                            <span class="result-value">${moonPhase}</span>
+                        </div>
+                        
+                        ${location ? `<div class="result-item">
+                            <span>Birth Location:</span>
+                            <span class="result-value">${location}</span>
+                        </div>` : ''}
+                        
+                        <div class="result-item">
+                            <span>Coordinates:</span>
+                            <span class="result-value">${latitude?.toFixed(4) || 'N/A'}°, ${longitude?.toFixed(4) || 'N/A'}°</span>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('astrologyResults').innerHTML = results;
+                drawBirthChart(zodiacSign, ascendant);
+                
+            } catch (error) {
+                showError('astrologyResults', 'Error calculating astrology: ' + error.message);
+            }
+        }
+
+        // Physics calculations
+        function calculatePhysics() {
+            const mass = parseFloat(document.getElementById('mass').value);
+            const velocity = parseFloat(document.getElementById('velocity').value);
+            const acceleration = parseFloat(document.getElementById('acceleration').value);
+            const distance = parseFloat(document.getElementById('distance').value);
+            const time = parseFloat(document.getElementById('time').value);
+            
+            let results = '<div class="result success"><h3>Physics Calculations</h3>';
+            
+            try {
+                // Kinetic Energy
+                if (!isNaN(mass) && !isNaN(velocity)) {
+                    const kineticEnergy = 0.5 * mass * velocity * velocity;
+                    results += `
+                        <div class="result-item">
+                            <span>Kinetic Energy:</span>
+                            <span class="result-value">${kineticEnergy.toFixed(2)} J</span>
+                        </div>
+                    `;
+                }
+                
+                // Momentum
+                if (!isNaN(mass) && !isNaN(velocity)) {
+                    const momentum = mass * velocity;
+                    results += `
+                        <div class="result-item">
+                            <span>Momentum:</span>
+                            <span class="result-value">${momentum.toFixed(2)} kg⋅m/s</span>
+                        </div>
+                    `;
+                }
+                
+                // Force
+                if (!isNaN(mass) && !isNaN(acceleration)) {
+                    const force = mass * acceleration;
+                    results += `
+                        <div class="result-item">
+                            <span>Force (F = ma):</span>
+                            <span class="result-value">${force.toFixed(2)} N</span>
+                        </div>
+                    `;
+                }
+                
+                // Work
+                if (!isNaN(mass) && !isNaN(acceleration) && !isNaN(distance)) {
+                    const force = mass * acceleration;
+                    const work = force * distance;
+                    results += `
+                        <div class="result-item">
+                            <span>Work Done:</span>
+                            <span class="result-value">${work.toFixed(2)} J</span>
+                        </div>
+                    `;
+                }
+                
+                // Power
+                if (!isNaN(mass) && !isNaN(acceleration) && !isNaN(distance) && !isNaN(time) && time > 0) {
+                    const force = mass * acceleration;
+                    const work = force * distance;
+                    const power = work / time;
+                    results += `
+                        <div class="result-item">
+                            <span>Power:</span>
+                            <span class="result-value">${power.toFixed(2)} W</span>
+                        </div>
+                    `;
+                }
+                
+                // Velocity from acceleration and time
+                if (!isNaN(acceleration) && !isNaN(time)) {
+                    const finalVelocity = acceleration * time;
+                    results += `
+                        <div class="result-item">
+                            <span>Final Velocity (v = at):</span>
+                            <span class="result-value">${finalVelocity.toFixed(2)} m/s</span>
+                        </div>
+                    `;
+                }
+                
+                // Distance from velocity and time
+                if (!isNaN(velocity) && !isNaN(time)) {
+                    const distanceFromVT = velocity * time;
+                    results += `
+                        <div class="result-item">
+                            <span>Distance (d = vt):</span>
+                            <span class="result-value">${distanceFromVT.toFixed(2)} m</span>
+                        </div>
+                    `;
+                }
+                
+                results += '</div>';
+                document.getElementById('physicsResults').innerHTML = results;
+                
+            } catch (error) {
+                showError('physicsResults', 'Error in physics calculations: ' + error.message);
+            }
+        }
+
+        // Wave simulation
+        function initializeWaveSimulation() {
+            const waveCanvas = document.getElementById('waveCanvas');
+            if (!waveCanvas) return;
+            
+            const waveCtx = waveCanvas.getContext('2d');
+            const freqSlider = document.getElementById('frequency');
+            const ampSlider = document.getElementById('amplitude');
+            const freqValue = document.getElementById('freqValue');
+            const ampValue = document.getElementById('ampValue');
+
+            waveCanvas.width = waveCanvas.offsetWidth;
+            waveCanvas.height = waveCanvas.offsetHeight;
+
+            let time = 0;
+            let frequency = 1;
+            let amplitude = 1;
+            let animationId;
+
+            freqSlider.addEventListener('input', function() {
+                frequency = parseFloat(this.value);
+                freqValue.textContent = frequency;
+            });
+
+            ampSlider.addEventListener('input', function() {
+                amplitude = parseFloat(this.value);
+                ampValue.textContent = amplitude;
+            });
+
+            function drawWave() {
+                waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+                
+                // Draw grid
+                waveCtx.strokeStyle = '#333';
+                waveCtx.lineWidth = 0.5;
+                for (let i = 0; i < waveCanvas.width; i += 20) {
+                    waveCtx.beginPath();
+                    waveCtx.moveTo(i, 0);
+                    waveCtx.lineTo(i, waveCanvas.height);
+                    waveCtx.stroke();
+                }
+                for (let i = 0; i < waveCanvas.height; i += 20) {
+                    waveCtx.beginPath();
+                    waveCtx.moveTo(0, i);
+                    waveCtx.lineTo(waveCanvas.width, i);
+                    waveCtx.stroke();
+                }
+
+                // Draw center line
+                waveCtx.strokeStyle = '#666';
+                waveCtx.lineWidth = 1;
+                waveCtx.beginPath();
+                waveCtx.moveTo(0, waveCanvas.height / 2);
+                waveCtx.lineTo(waveCanvas.width, waveCanvas.height / 2);
+                waveCtx.stroke();
+
+                // Draw wave
+                waveCtx.strokeStyle = '#00ff88';
+                waveCtx.lineWidth = 3;
+                waveCtx.beginPath();
+                
+                const centerY = waveCanvas.height / 2;
+                const scale = 50;
+                
+                for (let x = 0; x < waveCanvas.width; x++) {
+                    const y = centerY + amplitude * scale * Math.sin((x * 0.02 + time) * frequency);
+                    if (x === 0) {
+                        waveCtx.moveTo(x, y);
+                    } else {
+                        waveCtx.lineTo(x, y);
+                    }
+                }
+                
+                waveCtx.stroke();
+                time += 0.1;
+                animationId = requestAnimationFrame(drawWave);
+            }
+
+            // Stop previous animation if exists
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            
+            drawWave();
+        }
+
+        // Vibration chart for numerology
+        function initializeVibrationChart() {
+            const canvas = document.getElementById('vibrationChart');
+            if (!canvas) return;
+            
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+
+        function updateVibrationChart(name, system) {
+            const canvas = document.getElementById('vibrationChart');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const chart = system === 'pythagorean' ? pythagoreanChart : chaldeanChart;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Calculate letter values
+            const letters = name.toUpperCase().replace(/[^A-Z]/g, '').split('');
+            const values = letters.map(letter => chart[letter] || 0);
+            
+            if (values.length === 0) return;
+            
+            const barWidth = canvas.width / values.length;
+            const maxValue = Math.max(...values);
+            
+            // Draw bars
+            values.forEach((value, index) => {
+                const barHeight = (value / maxValue) * (canvas.height - 60);
+                const x = index * barWidth;
+                const y = canvas.height - barHeight - 30;
+                
+                // Create gradient
+                const gradient = ctx.createLinearGradient(0, y, 0, y + barHeight);
+                gradient.addColorStop(0, '#00d4ff');
+                gradient.addColorStop(1, '#ff00ff');
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x + 5, y, barWidth - 10, barHeight);
+                
+                // Draw letter
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '14px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText(letters[index], x + barWidth / 2, canvas.height - 10);
+                
+                // Draw value
+                ctx.fillText(value.toString(), x + barWidth / 2, y - 5);
+            });
+        }
+
+        // Birth chart drawing
+        function initializeChartCanvas() {
+            const canvas = document.getElementById('chartCanvas');
+            if (!canvas) return;
+            
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+
+        function drawBirthChart(sunSign, ascendant) {
+            const canvas = document.getElementById('chartCanvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) - 20;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw outer circle
+            ctx.strokeStyle = '#00d4ff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            // Draw zodiac signs
+            const angleStep = (2 * Math.PI) / 12;
+            zodiacSigns.forEach((sign, index) => {
+                const angle = index * angleStep - Math.PI / 2;
+                const x = centerX + Math.cos(angle) * (radius - 30);
+                const y = centerY + Math.sin(angle) * (radius - 30);
+                
+                ctx.fillStyle = sign === sunSign ? '#ffff00' : '#ffffff';
+                ctx.font = '12px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText(sign.substring(0, 3), x, y);
+                
+                // Draw division lines
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(centerX + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius);
+                ctx.stroke();
+            });
+            
+            // Mark ascendant
+            const ascendantIndex = zodiacSigns.indexOf(ascendant);
+            if (ascendantIndex !== -1) {
+                const angle = ascendantIndex * angleStep - Math.PI / 2;
+                const x = centerX + Math.cos(angle) * (radius + 15);
+                const y = centerY + Math.sin(angle) * (radius + 15);
+                
+                ctx.fillStyle = '#ff00ff';
+                ctx.font = 'bold 14px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText('ASC', x, y);
+            }
+            
+            // Draw center
+            ctx.fillStyle = '#00d4ff';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        // Utility functions
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `
+                <div class="result error">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Error</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function showLoading(elementId) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `
+                <div style="text-align: center; padding: 40px;">
+                    <div class="loading"></div>
+                    <p style="margin-top: 15px;">Calculating...</p>
+                </div>
+            `;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeVibrationChart();
+            initializeChartCanvas();
+            
+            // Set default date to today
+            const today = new Date();
+            const dateString = today.toISOString().split('T')[0];
+            document.getElementById('birthDate').value = dateString;
+            
+            // Set default datetime to current
+            const datetimeString = today.toISOString().slice(0, 16);
+            document.getElementById('birthDateTime').value = datetimeString;
+            
+            // Initialize wave simulation if physics tab is active
+            if (currentTab === 'physics') {
+                initializeWaveSimulation();
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (currentTab === 'physics') {
+                setTimeout(initializeWaveSimulation, 100);
+            } else if (currentTab === 'numerology') {
+                setTimeout(initializeVibrationChart, 100);
+            } else if (currentTab === 'astrology') {
+                setTimeout(initializeChartCanvas, 100);
+            }
+        });
+
+        // Initialize wave simulation on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(initializeWaveSimulation, 100);
+        });
     </script>
 </body>
 </html>
